@@ -1,0 +1,16 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go build -o ./cmd/api/main ./cmd/api/main.go"
+  bin = "cmd/api/main"
+  delay = 1000
+
+  include_ext = ["go"]
+  exclude_dir = ["tmp", "vendor", ".git"]
+
+  poll = true
+  poll_interval = 500
+
+[screen]
+  clear_on_rebuild = true
