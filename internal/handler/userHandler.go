@@ -72,7 +72,7 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	user, err := h.svc.GetUser(id)
 	
 	if err != nil {
-		http.Error(w, "user id is not found", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 

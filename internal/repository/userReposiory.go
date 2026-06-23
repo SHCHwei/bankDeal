@@ -36,8 +36,14 @@ func (r *userRepository) FindUserByID(id int) (*model.User, error) {
 		return nil, fmt.Errorf("user %d not found", id)
 	}
 
-	if err := rows.Scan(&userData); err != nil {
-		return nil, fmt.Errorf("user id %d is not found", id)
+	var birthDate sql.NullString
+
+	if err := rows.Scan(&userData.ID, &userData.FirstName, &userData.LastName, &userData.Email, &userData.Phone, &birthDate, &userData.CreatedAt, &userData.UpdatedAt); err != nil {
+		return nil, err
+	}
+
+	if birthDate.Valid {
+		userData.BirthDate = birthDate.String
 	}
 
 	return &userData, nil
