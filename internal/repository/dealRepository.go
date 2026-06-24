@@ -1,14 +1,12 @@
 package repository
 
 import (
-	"sync"
 	"context"
 	"database/sql"
-	
-	
+	"sync"
+
 	"bankDeal/internal/database"
 	"bankDeal/internal/model"
-	
 )
 
 type dealRepositories struct {
@@ -57,7 +55,7 @@ func (r *dealRepositories) Save(tx *sql.Tx, deal *model.Deal) error {
 	defer r.mu.Unlock()
 
 	const dealSql = "INSERT INTO deals (accountID, volume, transactionType, tradingAccountID, remark) VALUES (?, ?, ?, ?, ?)"
-	
+
 	_, err := tx.ExecContext(context.TODO(), dealSql, deal.AccountID, deal.Volume, deal.TransactionType, deal.TradingAccountID, deal.Remark)
 
 	if err != nil {
