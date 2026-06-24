@@ -3,7 +3,6 @@ package repository
 import (
 	"bankDeal/internal/database"
 	"bankDeal/internal/model"
-	"database/sql"
 	"regexp"
 	"testing"
 	"time"
@@ -89,6 +88,11 @@ func TestCreateBank_Success(t *testing.T) {
 	}
 	if id != 42 {
 		t.Fatalf("expected id 42, got %d", id)
+	}
+
+	// commit to satisfy sqlmock expectation
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit tx err: %v", err)
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {

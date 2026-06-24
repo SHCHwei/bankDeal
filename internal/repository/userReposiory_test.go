@@ -3,7 +3,6 @@ package repository
 import (
 	"bankDeal/internal/database"
 	"bankDeal/internal/model"
-	"database/sql"
 	"regexp"
 	"testing"
 	"time"
@@ -51,7 +50,7 @@ func TestSearch_Success(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "FirstName", "LastName", "Email", "Phone", "BirthDate", "CreatedAt", "UpdatedAt"}).
 		AddRow(2, "Jane", "Smith", "jane@example.com", "0987654321", "", now, now)
 
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, FirstName, LastName, Email, Phone, BirthDate, CreatedAt, UpdatedAt FROM users WHERE "+"FirstName = ?"+" LIMIT 1")).WithArgs("Jane").WillReturnRows(rows)
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, FirstName, LastName, Email, Phone, BirthDate, CreatedAt, UpdatedAt FROM users WHERE " + "FirstName = ?" + " LIMIT 1")).WithArgs("Jane").WillReturnRows(rows)
 
 	repo := NewUserRepository()
 	res, err := repo.Search(model.User{FirstName: "Jane"})
@@ -92,6 +91,11 @@ func TestInsertUser_Success(t *testing.T) {
 	}
 	if id != 77 {
 		t.Fatalf("expected id 77, got %d", id)
+	}
+
+	// commit to satisfy sqlmock expectation
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit tx err: %v", err)
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {

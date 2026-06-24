@@ -8,13 +8,10 @@ import (
 	"sync"
 )
 
-
-
 type bankRepository struct {
 	mu       sync.RWMutex
 	bankList map[int]*model.Bank
 }
-
 
 func NewBankRepository() model.BankRepository {
 	return &bankRepository{
@@ -22,8 +19,7 @@ func NewBankRepository() model.BankRepository {
 	}
 }
 
-
-func(r *bankRepository) GetBankByID(id int)(*model.Bank, error){
+func (r *bankRepository) GetBankByID(id int) (*model.Bank, error) {
 
 	rows, err := database.MariaDB.Query("select * from banks where id = ?", id)
 
@@ -35,11 +31,9 @@ func(r *bankRepository) GetBankByID(id int)(*model.Bank, error){
 
 	var bankData model.Bank
 
-
 	if !rows.Next() {
 		return nil, fmt.Errorf("bank %d not found", id)
 	}
-
 
 	if err := rows.Scan(&bankData.ID, &bankData.Code, &bankData.BankName, &bankData.CapitalAmount, &bankData.CreatedAt, &bankData.UpdatedAt); err != nil {
 		return nil, fmt.Errorf("bank id %d is not found. %v", id, err.Error())
@@ -47,8 +41,6 @@ func(r *bankRepository) GetBankByID(id int)(*model.Bank, error){
 
 	return &bankData, nil
 }
-
-
 
 func (r *bankRepository) CreateBank(tx *sql.Tx, inputData model.Bank) (int64, error) {
 
