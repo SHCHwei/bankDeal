@@ -35,13 +35,13 @@ func (r *dealRepositories) FindByID(id int) (*model.Deal, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	const dealSql = "select * from deals where id = ?"
+	const dealSql = "select id, accountID, volume, transactionType, tradingAccountID, remark, createdAt from deals where id = ?"
 
 	var deal model.Deal
 
 	row := database.MariaDB.QueryRow(dealSql, id)
 
-	err := row.Scan(&deal.AccountID, &deal.Volume, &deal.TransactionType, &deal.TradingAccountID, &deal.Remark)
+	err := row.Scan(&deal.ID, &deal.AccountID, &deal.Volume, &deal.TransactionType, &deal.TradingAccountID, &deal.Remark, &deal.CreatedAt)
 
 	if err != nil {
 		return nil, err

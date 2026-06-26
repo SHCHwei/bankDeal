@@ -1,0 +1,295 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "BankDeal API",
+    "version": "1.0.0",
+    "description": "Swagger documentation for current BankDeal routes."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080"
+    }
+  ],
+  "paths": {
+    "/deals/{id}": {
+      "get": {
+        "summary": "查詢單筆交易",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "交易資料",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Deal"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "無效的輸入" 
+          },
+          "404": {
+            "description": "找不到交易"
+          }
+        }
+      }
+    },
+    "/deals": {
+      "get": {
+        "summary": "查詢所有交易",
+        "description": "取得系統中所有的交易記錄列表",
+        "responses": {
+          "200": {
+            "description": "交易列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Deal"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服務器錯誤"
+          }
+        }
+      },
+      "post": {
+        "summary": "建立新交易",
+        "description": "建立一筆新的交易記錄，包括存款或提款操作",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDeal"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "已建立交易",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Deal"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "請求格式錯誤或驗證失敗",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/{id}": {
+      "get": {
+        "summary": "查詢用戶",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "用戶資料",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "無效的輸入"
+          }
+        }
+      }
+    },
+    "/user/create": {
+      "post": {
+        "summary": "建立新用戶",
+        "description": "建立一個新的用戶帳戶，需要提供基本的用戶資訊",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUser"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "用戶已建立成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "請求格式錯誤或驗證失敗",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/init/fake": {
+      "get": {
+        "summary": "建立假資料",
+        "responses": {
+          "204": {
+            "description": "已建立假資料"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateUser": {
+        "type": "object",
+        "description": "建立用戶的請求參數",
+        "properties": {
+          "first_name": { 
+            "type": "string",
+            "description": "用戶名字（必填）",
+            "example": "John"
+          },
+          "last_name": { 
+            "type": "string",
+            "description": "用戶姓氏（必填）",
+            "example": "Doe"
+          },
+          "email": { 
+            "type": "string",
+            "format": "email",
+            "description": "用戶電子郵件（必填）",
+            "example": "john.doe@example.com"
+          },
+          "phone": { 
+            "type": "string",
+            "description": "用戶電話號碼（必填）",
+            "example": "09123456789"
+          },
+          "birthdate": { 
+            "type": "string",
+            "format": "date",
+            "description": "用戶生日（選填）",
+            "example": "1990-01-15"
+          },
+          "bank_ID": { 
+            "type": "integer",
+            "description": "銀行ID（選填）",
+            "example": 1
+          }
+        },
+        "required": ["first_name", "last_name", "email", "phone"]
+      },
+      "CreateDeal": {
+        "type": "object",
+        "description": "建立交易的請求參數",
+        "properties": {
+          "account_id": { 
+            "type": "integer",
+            "description": "帳戶ID（必填）",
+            "example": 1
+          },
+          "volume": { 
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50000,
+            "description": "交易金額（必填），範圍 1-50000",
+            "example": 1000
+          },
+          "transaction_type": { 
+            "type": "integer",
+            "format": "int32",
+            "description": "交易類型（0: 存款, 1: 提款）",
+            "example": 0
+          },
+          "trading_account_id": { 
+            "type": "integer",
+            "description": "目標帳戶ID",
+            "example": 2
+          },
+          "remark": { 
+            "type": "string",
+            "description": "交易備註",
+            "example": "轉帳至王小明"
+          }
+        },
+        "required": ["account_id", "volume"]
+      },
+      "Deal": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "account_id": { "type": "integer" },
+          "volume": { "type": "integer" },
+          "transaction_type": { "type": "integer" },
+          "trading_account_id": { "type": "integer" },
+          "remark": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "first_name": { "type": "string" },
+          "last_name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "phone": { "type": "string" },
+          "birthdate": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}

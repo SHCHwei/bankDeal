@@ -6,6 +6,7 @@ import (
 	"bankDeal/internal/handler"
 	"bankDeal/internal/repository"
 	"bankDeal/internal/service"
+	"bankDeal/internal/swagger"
 	"log"
 	"net/http"
 )
@@ -34,15 +35,20 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /deals/{id}", handleDeal.GetDeal) // 查詢單筆交易
-	mux.HandleFunc("POST /deals", handleDeal.CreateDeal)  // 建立交易
+	mux.HandleFunc("GET /deals/{id}", handleDeal.GetDeal)   // 查詢單筆交易
+	mux.HandleFunc("POST /deals", handleDeal.CreateDeal) // 建立交易
 
-	mux.HandleFunc("GET /user/{id}", handleUser.GetUser) // 查詢用戶
+	mux.HandleFunc("GET /user/{id}", handleUser.GetUser)          // 查詢用戶
 	mux.HandleFunc("POST /user/create", handleUser.CreateUser) // 建立用戶
 
 	mux.HandleFunc("GET /init/fake", func(w http.ResponseWriter, r *http.Request) {
 		database.FactoryFake()
+		w.WriteHeader(http.StatusNoContent)
 	}) //建立假資料
+
+	mux.HandleFunc("GET /swagger", swagger.UIHandler)
+	mux.HandleFunc("GET /swagger/doc", swagger.DocHandler)
+
 
 	cfg.Init = false
 

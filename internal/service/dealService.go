@@ -122,7 +122,7 @@ func (s *dealService) CreateDeal(accountID int, volume int64, transactionType ui
 
 
 	// 帳戶異動紀錄 (乙方)
-	if transactionType == 0 {
+	if transactionType == 1 {
 		tradingAccount.Balance = tradingAccount.Balance + volume
 	} else {
 		tradingAccount.Balance = tradingAccount.Balance - volume
