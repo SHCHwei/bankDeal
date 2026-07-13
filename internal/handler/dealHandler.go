@@ -3,6 +3,7 @@ package handler
 import (
 	"bankDeal/internal/model"
 	"bankDeal/internal/dto/request"
+	"bankDeal/internal/logger"
 	"net/http"
 	"strconv"
 
@@ -48,7 +49,15 @@ func (h *DealHandler) CreateDeal(w http.ResponseWriter, r *http.Request) {
 
 	var requestData request.CreateDeal
 
+	// 获取日志记录器
+	log, err := logger.GetInstance()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	if err := r.ParseForm(); err != nil {
+		log.LogRequestError(0, 0, 0, 0, "ParseForm", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -56,6 +65,7 @@ func (h *DealHandler) CreateDeal(w http.ResponseWriter, r *http.Request) {
 	// 將 Form 資料綁定到 Struct
 	decoder := schema.NewDecoder()
 	if err := decoder.Decode(&requestData, r.PostForm); err != nil {
+		log.LogRequestError(0, 0, 0, 0, "Decode", "解析表單失敗")
 		http.Error(w, "解析表單失敗", http.StatusBadRequest)
 		return
 	}
@@ -63,15 +73,54 @@ func (h *DealHandler) CreateDeal(w http.ResponseWriter, r *http.Request) {
 	// 3. 驗證資料合法性
 	validate := validator.New()
 	if err := validate.Struct(&requestData); err != nil {
-		// 這裡可以處理具體的錯誤訊息
+		// 記錄驗證錯誤
+		log.LogRequestError(
+			requestData.AccountID,
+			requestData.Volume,
+			requestData.TransactionType,
+			requestData.TradingAccountID,
+			"Validation",
+			err.Error(),
+		)
 		http.Error(w, "驗證失敗: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	deal, err := h.svc.CreateDeal(requestData.AccountID, requestData.Volume, requestData.TransactionType, requestData.TradingAccountID, requestData.Remark)
+	// 4. 執行交易
+	deal, err := h.svc.CreateDeal(
+		requestData.AccountID,
+		requestData.Volume,
+		requestData.TransactionType,
+		requestData.TradingAccountID,
+		requestData.Remark,
+	)
 	if err != nil {
+		// 記錄交易創建失敗
+		log.LogCreateDeal(
+			requestData.AccountID,
+			requestData.Volume,
+			requestData.TransactionType,
+			requestData.TradingAccountID,
+			requestData.Remark,
+			false,
+			0,
+			err.Error(),
+		)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	// 記錄成功的交易創建
+	log.LogCreateDeal(
+		requestData.AccountID,
+		requestData.Volume,
+		requestData.TransactionType,
+		requestData.TradingAccountID,
+		requestData.Remark,
+		true,
+		deal.ID,
+		"",
+	)
+
 	writeJSON(w, http.StatusCreated, deal)
 }

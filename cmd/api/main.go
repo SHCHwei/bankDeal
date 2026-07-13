@@ -4,6 +4,7 @@ import (
 	"bankDeal/internal/config"
 	"bankDeal/internal/database"
 	"bankDeal/internal/handler"
+	"bankDeal/internal/logger"
 	"bankDeal/internal/repository"
 	"bankDeal/internal/service"
 	"bankDeal/internal/swagger"
@@ -19,6 +20,13 @@ func main() {
 	if dbResult := database.MariaDBConnect(*cfg); dbResult == false {
 		log.Fatal("ＳＯＲＲＹ!! Database is Connect Failed ")
 	}
+
+	// Initialize logger
+	log_, err := logger.GetInstance()
+	if err != nil {
+		log.Fatal("Failed to initialize logger:", err)
+	}
+	defer log_.Close()
 
 	// build Repository
 	userRepo := repository.NewUserRepository()
