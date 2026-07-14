@@ -14,10 +14,10 @@ import (
 
 func main() {
 
-	cfg := config.Load()
+	cfg, dbCfg := config.Load()
 	database.BuildTables()
 
-	if dbResult := database.MariaDBConnect(*cfg); dbResult == false {
+	if dbResult := database.MariaDBConnect(*dbCfg); dbResult == false {
 		log.Fatal("ＳＯＲＲＹ!! Database is Connect Failed ")
 	}
 
@@ -57,8 +57,6 @@ func main() {
 	mux.HandleFunc("GET /swagger", swagger.UIHandler)
 	mux.HandleFunc("GET /swagger/doc", swagger.DocHandler)
 
-
-	cfg.Init = false
 
 	log.Printf("server listening on %s \n", cfg.Addr)
 
