@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"time"
+	"fmt"
 
 	"bankDeal/internal/config"
 
@@ -15,8 +16,10 @@ import (
 
 var MariaDB *sql.DB
 var err error
-func MariaDBConnect(cfg config.Config) bool {
-	dsn := "user:user1@tcp(bankdeal-db-1:3306)/bankDeal?charset=utf8mb4&parseTime=True&loc=Local"
+
+func MariaDBConnect(cfg config.DataBaseConfig) bool {
+
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
 
 	// 1. Open a handle to the DB (doesn't connect yet)
 	MariaDB, err = sql.Open("mysql", dsn)
@@ -25,7 +28,6 @@ func MariaDBConnect(cfg config.Config) bool {
 	} else {
 		log.Println("sql Open success")
 	}
-
 
 
 	// 2. Set connection pool settings (Recommended for production)
