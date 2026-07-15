@@ -12,11 +12,17 @@ import (
 )
 
 type DealHandler struct {
-	svc model.DealService
+	svc 		model.DealService
+   	decoder		*schema.Decoder
+    validate	*validator.Validate
 }
 
 func NewDealHandler(svc model.DealService) *DealHandler {
-	return &DealHandler{svc: svc}
+	return &DealHandler{
+		svc: svc,
+		decoder:  schema.NewDecoder(),
+        validate: validator.New(),
+	}
 }
 
 func (h *DealHandler) ListDeals(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +55,7 @@ func (h *DealHandler) CreateDeal(w http.ResponseWriter, r *http.Request) {
 
 	var requestData request.CreateDeal
 
-	// 获取日志记录器
+	// 日誌紀錄
 	log, err := logger.GetInstance()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -63,16 +69,14 @@ func (h *DealHandler) CreateDeal(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 將 Form 資料綁定到 Struct
-	decoder := schema.NewDecoder()
-	if err := decoder.Decode(&requestData, r.PostForm); err != nil {
+	if err := h.decoder.Decode(&requestData, r.PostForm); err != nil {
 		log.LogRequestError(0, 0, 0, 0, "Decode", "解析表單失敗")
 		http.Error(w, "解析表單失敗", http.StatusBadRequest)
 		return
 	}
 
 	// 3. 驗證資料合法性
-	validate := validator.New()
-	if err := validate.Struct(&requestData); err != nil {
+	if err := h.validate.Struct(&requestData); err != nil {
 		// 記錄驗證錯誤
 		log.LogRequestError(
 			requestData.AccountID,
