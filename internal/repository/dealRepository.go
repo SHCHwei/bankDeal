@@ -3,43 +3,54 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"sync"
 
 	"bankDeal/internal/database"
 	"bankDeal/internal/model"
 )
 
 type dealRepositories struct {
-	mu    sync.RWMutex
 	store map[string]*model.Deal
+	sqlDB *sql.DB
 }
 
-func NewDealRepositories() model.DealRepository {
+func NewDealRepositories(sqlDB *sql.DB) model.DealRepository {
 	return &dealRepositories{
 		store: make(map[string]*model.Deal),
+		sqlDB: sqlDB,
 	}
 }
 
 func (r *dealRepositories) FindAll() ([]*model.Deal, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+	const dealSql = "select id, accountID, volume, transactionType, tradingAccountID, remark, createdAt from deals order by id asc"
 
-	deals := make([]*model.Deal, 0, len(r.store))
-	for _, d := range r.store {
-		deals = append(deals, d)
+	rows, err := r.sqlDB.Query(dealSql)
+	if err != nil {
+		return nil, err
 	}
+	defer rows.Close()
+
+	deals := make([]*model.Deal, 0)
+	for rows.Next() {
+		var deal model.Deal
+		if err := rows.Scan(&deal.ID, &deal.AccountID, &deal.Volume, &deal.TransactionType, &deal.TradingAccountID, &deal.Remark, &deal.CreatedAt); err != nil {
+			return nil, err
+		}
+		deals = append(deals, &deal)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return deals, nil
 }
 
 func (r *dealRepositories) FindByID(id int) (*model.Deal, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
 
 	const dealSql = "select id, accountID, volume, transactionType, tradingAccountID, remark, createdAt from deals where id = ?"
-
 	var deal model.Deal
 
-	row := database.MariaDB.QueryRow(dealSql, id)
+	row := r.sqlDB.QueryRow(dealSql, id)
 
 	err := row.Scan(&deal.ID, &deal.AccountID, &deal.Volume, &deal.TransactionType, &deal.TradingAccountID, &deal.Remark, &deal.CreatedAt)
 
@@ -50,13 +61,13 @@ func (r *dealRepositories) FindByID(id int) (*model.Deal, error) {
 	return &deal, nil
 }
 
-func (r *dealRepositories) Save(tx *sql.Tx, deal *model.Deal) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+func (r *dealRepositories) Save(ctx context.Context, deal *model.Deal) error {
 
 	const dealSql = "INSERT INTO deals (accountID, volume, transactionType, tradingAccountID, remark) VALUES (?, ?, ?, ?, ?)"
 
-	_, err := tx.ExecContext(context.TODO(), dealSql, deal.AccountID, deal.Volume, deal.TransactionType, deal.TradingAccountID, deal.Remark)
+	tx := database.GetExecutor(ctx, r.sqlDB)
+
+	_, err := tx.ExecContext(ctx, dealSql, deal.AccountID, deal.Volume, deal.TransactionType, deal.TradingAccountID, deal.Remark)
 
 	if err != nil {
 		return err

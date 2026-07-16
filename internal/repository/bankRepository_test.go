@@ -5,6 +5,7 @@ import (
 	"bankDeal/internal/model"
 	"regexp"
 	"testing"
+	"context"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -24,7 +25,7 @@ func TestGetBankByID_Success(t *testing.T) {
 
 	mock.ExpectQuery(regexp.QuoteMeta("select * from banks where id = ?")).WithArgs(1).WillReturnRows(rows)
 
-	repo := NewBankRepository()
+	repo := NewBankRepository(database.MariaDB)
 	b, err := repo.GetBankByID(1)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -52,7 +53,7 @@ func TestGetBankByID_NotFound(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "Code", "BankName", "CapitalAmount", "CreatedAt", "UpdatedAt"})
 	mock.ExpectQuery(regexp.QuoteMeta("select * from banks where id = ?")).WithArgs(999).WillReturnRows(rows)
 
-	repo := NewBankRepository()
+	repo := NewBankRepository(database.MariaDB)
 	_, err = repo.GetBankByID(999)
 	if err == nil {
 		t.Fatalf("expected error for not found, got nil")
@@ -76,13 +77,15 @@ func TestCreateBank_Success(t *testing.T) {
 		WithArgs("C2", "Bank B", 2000).WillReturnResult(sqlmock.NewResult(42, 1))
 	mock.ExpectCommit()
 
-	tx, err := db.Begin()
-	if err != nil {
-		t.Fatalf("begin tx err: %v", err)
-	}
+	repo := NewBankRepository(db)
 
-	repo := NewBankRepository()
-	id, err := repo.CreateBank(tx, model.Bank{Code: "C2", BankName: "Bank B", CapitalAmount: 2000})
+	txManager := database.NewTxManager(db)
+	var id int64
+	err = txManager.RunInTransaction(context.Background(), func(txCtx context.Context) error {
+		var createErr error
+		id, createErr = repo.CreateBank(txCtx, model.Bank{Code: "C2", BankName: "Bank B", CapitalAmount: 2000})
+		return createErr
+	})
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
@@ -90,10 +93,6 @@ func TestCreateBank_Success(t *testing.T) {
 		t.Fatalf("expected id 42, got %d", id)
 	}
 
-	// commit to satisfy sqlmock expectation
-	if err := tx.Commit(); err != nil {
-		t.Fatalf("commit tx err: %v", err)
-	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("there were unfulfilled expectations: %s", err)

@@ -1,7 +1,7 @@
 package model
 
 import (
-	"database/sql"
+	"context"
 	"time"
 )
 
@@ -18,8 +18,8 @@ type Account struct {
 type AccountRepository interface {
 	FindByID(id int) (*Account, error)
 	FindByUserID(userID int) (*Account, error)
-	Create(tx *sql.Tx, data *Account) error
-	Update(tx *sql.Tx, data *Account) error
+	Create(ctx context.Context, data *Account) error
+	Update(ctx context.Context, data *Account) error
 }
 
 type AccountService interface {

@@ -2,7 +2,8 @@ package service
 
 import (
 	"errors"
-
+	"context"
+	"database/sql"
 	"bankDeal/internal/pkg"
 	"bankDeal/internal/database"
 	"bankDeal/internal/model"
@@ -10,13 +11,15 @@ import (
 )
 
 type userService struct {
+	txManager   *database.TxManager
 	userRepo    model.UserRepository
 	accountRepo model.AccountRepository
 	bankRepo 	model.BankRepository
 }
 
-func NewUserService(userRepo model.UserRepository, accountRepo model.AccountRepository, bankRepo model.BankRepository) model.UserService {
+func NewUserService(sqlDB *sql.DB, userRepo model.UserRepository, accountRepo model.AccountRepository, bankRepo model.BankRepository) model.UserService {
 	return &userService{
+		txManager: database.NewTxManager(sqlDB),
 		userRepo: userRepo, 
 		accountRepo: accountRepo,
 		bankRepo: bankRepo,
@@ -27,11 +30,9 @@ func (s *userService) GetUser(id int) (*model.User, error) {
 	return s.userRepo.FindUserByID(id)
 }
 
-func (s *userService) CreateUser(requestData request.CreateUser) error {
-
+func (s *userService) CreateUser(ctx context.Context, requestData request.CreateUser) error {
 
 	// 檢查user 是否已經存在
-
 	personInfo := model.User{
 		FirstName: requestData.FirstName,
 		LastName: requestData.LastName,
@@ -54,54 +55,42 @@ func (s *userService) CreateUser(requestData request.CreateUser) error {
 	}
 
 
-	tx, err := database.MariaDB.Begin()
+	return s.txManager.RunInTransaction(ctx, func(txCtx context.Context) error {
 
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err != nil {
-			tx.Rollback()
+		var userData model.User
+
+		if person == nil {
+			userData.FirstName = requestData.FirstName
+			userData.LastName = requestData.LastName
+			userData.Email = requestData.Email
+			userData.Phone = requestData.Phone
+			userData.BirthDate = requestData.BirthDate
+
+			userID, err := s.userRepo.InsertUser(txCtx, userData)
+			if err != nil {
+				return err
+			}
+
+
+			userData.ID = int(userID)
+			
+		} else {
+			userData = *person
 		}
-	}()
 
 
-	var userData model.User
+		account := &model.Account{
+			UserID:      userData.ID,
+			BankID:      requestData.BankID,
+			AccountName: bank.Code + pkg.BuildBankCode(),
+			Balance:     100000,
+		}
 
-	if person == nil {
-		userData.FirstName = requestData.FirstName
-		userData.LastName = requestData.LastName
-		userData.Email = requestData.Email
-		userData.Phone = requestData.Phone
-		userData.BirthDate = requestData.BirthDate
-
-		userID, err := s.userRepo.InsertUser(tx, userData)
-		if err != nil {
+		if err := s.accountRepo.Create(txCtx, account); err != nil {
 			return err
 		}
 
-
-		userData.ID = int(userID)
-		 
-	} else {
-		userData = *person
-	}
-
-
-	account := &model.Account{
-		UserID:      userData.ID,
-		BankID:      requestData.BankID,
-		AccountName: bank.Code + pkg.BuildBankCode(),
-		Balance:     100000,
-	}
-
-	if err := s.accountRepo.Create(tx, account); err != nil {
-		return err
-	}
-
-	if err = tx.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+		// 回傳nil，RunInTransaction 函式會自動 Commit
+		return nil
+	})
 }

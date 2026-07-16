@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"regexp"
 	"testing"
 	"time"
@@ -21,7 +22,7 @@ func TestAccountRepository(t *testing.T) {
 	defer func() { database.MariaDB = oldDB }()
 	database.MariaDB = mockDB
 
-	repo := NewAccountRepository()
+	repo := NewAccountRepository(database.MariaDB)
 
 	t.Run("FindByID returns account", func(t *testing.T) {
 		rows := sqlmock.NewRows([]string{"id", "userID", "bankID", "accountName", "balance", "createdAt", "updatedAt"}).
@@ -62,19 +63,21 @@ func TestAccountRepository(t *testing.T) {
 		mock.ExpectExec(regexp.QuoteMeta("INSERT INTO accounts (userID, bankID, accountName, balance) VALUES (?, ?, ?, ?)")).
 			WithArgs(11, 22, "new account", int64(3000)).
 			WillReturnResult(sqlmock.NewResult(101, 1))
+		mock.ExpectCommit()
 
-		tx, err := database.MariaDB.Begin()
-		if err != nil {
-			t.Fatalf("failed to begin tx: %v", err)
-		}
 
+		txManager := database.NewTxManager(mockDB)
 		account := &model.Account{UserID: 11, BankID: 22, AccountName: "new account", Balance: 3000}
-		if err := repo.Create(tx, account); err != nil {
+		err := txManager.RunInTransaction(context.Background(), func(txCtx context.Context) error {
+			return repo.Create(txCtx, account)
+		})
+		if err != nil {
 			t.Fatalf("Create returned error: %v", err)
 		}
 		if account.ID != 101 {
 			t.Fatalf("expected ID 101, got %d", account.ID)
 		}
+
 	})
 
 	t.Run("Update updates account", func(t *testing.T) {
@@ -83,13 +86,15 @@ func TestAccountRepository(t *testing.T) {
 			WithArgs("updated", int64(4000), 101).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
-		tx, err := database.MariaDB.Begin()
-		if err != nil {
-			t.Fatalf("failed to begin tx: %v", err)
-		}
+		mock.ExpectCommit()
 
+
+		txManager := database.NewTxManager(mockDB)
 		account := &model.Account{ID: 101, AccountName: "updated", Balance: 4000}
-		if err := repo.Update(tx, account); err != nil {
+		err := txManager.RunInTransaction(context.Background(), func(txCtx context.Context) error {
+			return repo.Update(txCtx, account)
+		})
+		if err != nil {
 			t.Fatalf("Update returned error: %v", err)
 		}
 	})

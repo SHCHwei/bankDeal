@@ -1,27 +1,28 @@
 package repository
 
 import (
-	"bankDeal/internal/database"
 	"bankDeal/internal/model"
+	"bankDeal/internal/database"
 	"database/sql"
+	"context"
 	"fmt"
-	"sync"
 )
 
 type bankRepository struct {
-	mu       sync.RWMutex
 	bankList map[int]*model.Bank
+	sqlDB	 *sql.DB
 }
 
-func NewBankRepository() model.BankRepository {
+func NewBankRepository(sqlDB *sql.DB) model.BankRepository {
 	return &bankRepository{
 		bankList: make(map[int]*model.Bank),
+		sqlDB:    sqlDB,
 	}
 }
 
 func (r *bankRepository) GetBankByID(id int) (*model.Bank, error) {
 
-	rows, err := database.MariaDB.Query("select * from banks where id = ?", id)
+	rows, err := r.sqlDB.Query("select * from banks where id = ?", id)
 
 	if err != nil {
 		return nil, fmt.Errorf("bank id can not null")
@@ -42,11 +43,13 @@ func (r *bankRepository) GetBankByID(id int) (*model.Bank, error) {
 	return &bankData, nil
 }
 
-func (r *bankRepository) CreateBank(tx *sql.Tx, inputData model.Bank) (int64, error) {
+func (r *bankRepository) CreateBank(ctx context.Context, inputData model.Bank) (int64, error) {
 
 	const insertUserSQL = "INSERT INTO banks (Code, BankName, CapitalAmount) VALUES (?, ?, ?)"
 
-	result, err := tx.Exec(insertUserSQL, inputData.Code, inputData.BankName, inputData.CapitalAmount)
+	tx := database.GetExecutor(ctx, r.sqlDB)
+
+	result, err := tx.ExecContext(ctx,insertUserSQL, inputData.Code, inputData.BankName, inputData.CapitalAmount)
 	if err != nil {
 		return 0, err
 	}

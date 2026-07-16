@@ -29,14 +29,14 @@ func main() {
 	defer log_.Close()
 
 	// build Repository
-	userRepo := repository.NewUserRepository()
-	accountRepo := repository.NewAccountRepository()
-	dealRepo := repository.NewDealRepositories()
-	bankRepo := repository.NewBankRepository()
+	userRepo := repository.NewUserRepository(database.MariaDB)
+	accountRepo := repository.NewAccountRepository(database.MariaDB)
+	dealRepo := repository.NewDealRepositories(database.MariaDB)
+	bankRepo := repository.NewBankRepository(database.MariaDB)
 
 	// build Service
-	userSvc := service.NewUserService(userRepo, accountRepo, bankRepo)
-	dealSvc := service.NewDealService(dealRepo, accountRepo)
+	userSvc := service.NewUserService(database.MariaDB, userRepo, accountRepo, bankRepo)
+	dealSvc := service.NewDealService(database.MariaDB, dealRepo, accountRepo)
 
 	handleDeal := handler.NewDealHandler(dealSvc)
 	handleUser := handler.NewUserHandler(userSvc)

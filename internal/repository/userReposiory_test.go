@@ -5,6 +5,7 @@ import (
 	"bankDeal/internal/model"
 	"regexp"
 	"testing"
+	"context"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -24,7 +25,7 @@ func TestFindUserByID_Success(t *testing.T) {
 
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM users WHERE id = ?")).WithArgs(1).WillReturnRows(rows)
 
-	repo := NewUserRepository()
+	repo := NewUserRepository(database.MariaDB)
 	u, err := repo.FindUserByID(1)
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
@@ -52,7 +53,7 @@ func TestSearch_Success(t *testing.T) {
 
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, FirstName, LastName, Email, Phone, BirthDate, CreatedAt, UpdatedAt FROM users WHERE " + "FirstName = ?" + " LIMIT 1")).WithArgs("Jane").WillReturnRows(rows)
 
-	repo := NewUserRepository()
+	repo := NewUserRepository(database.MariaDB)
 	res, err := repo.Search(model.User{FirstName: "Jane"})
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
@@ -79,23 +80,20 @@ func TestInsertUser_Success(t *testing.T) {
 		WithArgs("Alice", "W", "alice@example.com", "0911000111", "2000-02-02").WillReturnResult(sqlmock.NewResult(77, 1))
 	mock.ExpectCommit()
 
-	tx, err := db.Begin()
-	if err != nil {
-		t.Fatalf("begin tx err: %v", err)
-	}
+	repo := NewUserRepository(db)
 
-	repo := NewUserRepository()
-	id, err := repo.InsertUser(tx, model.User{FirstName: "Alice", LastName: "W", Email: "alice@example.com", Phone: "0911000111", BirthDate: "2000-02-02"})
+	txManager := database.NewTxManager(db)
+	var id int64
+	err = txManager.RunInTransaction(context.Background(), func(txCtx context.Context) error {
+		var insertErr error
+		id, insertErr = repo.InsertUser(txCtx, model.User{FirstName: "Alice", LastName: "W", Email: "alice@example.com", Phone: "0911000111", BirthDate: "2000-02-02"})
+		return insertErr
+	})
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
 	if id != 77 {
 		t.Fatalf("expected id 77, got %d", id)
-	}
-
-	// commit to satisfy sqlmock expectation
-	if err := tx.Commit(); err != nil {
-		t.Fatalf("commit tx err: %v", err)
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {

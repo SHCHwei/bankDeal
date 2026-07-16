@@ -36,7 +36,7 @@ func Load() (*Config, *DataBaseConfig) {
 
 
 	return &Config{
-		Addr: addr,
+		Addr: ":" + addr,
 		Env:  env,
 	}, &DataBaseConfig{
 		User:     user,

@@ -1,28 +1,31 @@
 package repository
 
 import (
-	"bankDeal/internal/database"
 	"bankDeal/internal/model"
+	"bankDeal/internal/database"
 	"database/sql"
 	"fmt"
 	"strings"
-	"sync"
+	"context"
 )
 
+
 type userRepository struct {
-	mu       sync.RWMutex
 	userList map[int]*model.User
+	sqlDB *sql.DB
 }
 
-func NewUserRepository() model.UserRepository {
+
+func NewUserRepository(sqlDB *sql.DB) model.UserRepository {
 	return &userRepository{
 		userList: make(map[int]*model.User),
+		sqlDB: sqlDB,
 	}
 }
 
 func (r *userRepository) FindUserByID(id int) (*model.User, error) {
 
-	rows, err := database.MariaDB.Query("SELECT * FROM users WHERE id = ?", id)
+	rows, err := r.sqlDB.Query("SELECT * FROM users WHERE id = ?", id)
 
 	if err != nil {
 		return nil, fmt.Errorf("user id can not null")
@@ -79,7 +82,7 @@ func (r *userRepository) Search(user model.User) (*model.User, error) {
 	}
 
 	query := "SELECT id, FirstName, LastName, Email, Phone, BirthDate, CreatedAt, UpdatedAt FROM users WHERE " + strings.Join(clauses, " AND ") + " LIMIT 1"
-	row := database.MariaDB.QueryRow(query, args...)
+	row := r.sqlDB.QueryRow(query, args...)
 
 	var result model.User
 	if err := row.Scan(&result.ID, &result.FirstName, &result.LastName, &result.Email, &result.Phone, &result.BirthDate, &result.CreatedAt, &result.UpdatedAt); err != nil {
@@ -90,10 +93,13 @@ func (r *userRepository) Search(user model.User) (*model.User, error) {
 
 }
 
-func (r *userRepository) InsertUser(tx *sql.Tx, inputData model.User) (int64, error) {
+func (r *userRepository) InsertUser(ctx context.Context, inputData model.User) (int64, error) {
 	const insertUserSQL = "INSERT INTO users (FirstName, LastName, Email, Phone, BirthDate) VALUES (?, ?, ?, ?, ?)"
 
-	result, err := tx.Exec(insertUserSQL, inputData.FirstName, inputData.LastName, inputData.Email, inputData.Phone, inputData.BirthDate)
+	tx := database.GetExecutor(ctx, r.sqlDB)
+
+	result, err := tx.ExecContext(ctx, insertUserSQL, inputData.FirstName, inputData.LastName, inputData.Email, inputData.Phone, inputData.BirthDate)
+	
 	if err != nil {
 		return 0, err
 	}

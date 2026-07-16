@@ -6,6 +6,7 @@ import (
 	"bankDeal/internal/logger"
 	"net/http"
 	"strconv"
+	"context"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/schema"
@@ -92,12 +93,14 @@ func (h *DealHandler) CreateDeal(w http.ResponseWriter, r *http.Request) {
 
 	// 4. 執行交易
 	deal, err := h.svc.CreateDeal(
+		context.Background(),
 		requestData.AccountID,
 		requestData.Volume,
 		requestData.TransactionType,
 		requestData.TradingAccountID,
 		requestData.Remark,
 	)
+	
 	if err != nil {
 		// 記錄交易創建失敗
 		log.LogCreateDeal(

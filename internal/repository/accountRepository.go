@@ -1,33 +1,29 @@
 package repository
 
 import (
+	"bankDeal/internal/database"
+	"bankDeal/internal/model"
 	"context"
 	"database/sql"
 	"fmt"
-	"sync"
-
-	"bankDeal/internal/database"
-	"bankDeal/internal/model"
+	
 )
 
 type accountRepository struct {
-	mu       sync.RWMutex
 	accounts map[int]*model.Account
+	sqlDB *sql.DB
 }
 
-func NewAccountRepository() model.AccountRepository {
+func NewAccountRepository(sqlDB *sql.DB) model.AccountRepository {
 	return &accountRepository{
 		accounts: make(map[int]*model.Account),
+		sqlDB: sqlDB,
 	}
 
 }
 
 func (r *accountRepository) FindByID(id int) (*model.Account, error) {
-
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	rows, err := database.MariaDB.Query("SELECT * FROM accounts WHERE id = ?", id)
+	rows, err := r.sqlDB.Query("SELECT * FROM accounts WHERE id = ?", id)
 
 	if err != nil {
 		return nil, fmt.Errorf("account %d not found", id)
@@ -49,8 +45,6 @@ func (r *accountRepository) FindByID(id int) (*model.Account, error) {
 }
 
 func (r *accountRepository) FindByUserID(userID int) (*model.Account, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
 
 	rows, err := database.MariaDB.Query("SELECT * FROM accounts WHERE user_id = ?", userID)
 
@@ -73,10 +67,12 @@ func (r *accountRepository) FindByUserID(userID int) (*model.Account, error) {
 	return &targetAccount, nil
 }
 
-func (r *accountRepository) Create(tx *sql.Tx, data *model.Account) error {
-	const insertAccountSQL = "INSERT INTO accounts (userID, bankID, accountName, balance) VALUES (?, ?, ?, ?)"
+func (r *accountRepository) Create(ctx context.Context, data *model.Account) error {
 
-	result, err := tx.Exec(insertAccountSQL, data.UserID, data.BankID, data.AccountName, data.Balance)
+	const insertAccountSQL = "INSERT INTO accounts (userID, bankID, accountName, balance) VALUES (?, ?, ?, ?)"
+	tx := database.GetExecutor(ctx, r.sqlDB)
+	result, err := tx.ExecContext(ctx, insertAccountSQL, data.UserID, data.BankID, data.AccountName, data.Balance)
+	
 	if err != nil {
 		return err
 	}
@@ -87,17 +83,17 @@ func (r *accountRepository) Create(tx *sql.Tx, data *model.Account) error {
 	}
 
 	data.ID = int(id)
+
 	return nil
 }
 
-func (r *accountRepository) Update(tx *sql.Tx, data *model.Account) error {
-
-	r.mu.Lock()
-	defer r.mu.Unlock()
+func (r *accountRepository) Update(ctx context.Context, data *model.Account) error {
 
 	const updateSql = "UPDATE accounts SET accountName = ? , balance = ? WHERE id = ?"
 
-	_, err := tx.ExecContext(context.TODO(), updateSql, data.AccountName, data.Balance, data.ID)
+	tx := database.GetExecutor(ctx, r.sqlDB)
+
+	_, err := tx.ExecContext(ctx, updateSql, data.AccountName, data.Balance, data.ID)
 
 	if err != nil {
 		return err

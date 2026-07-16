@@ -2,7 +2,7 @@ package model
 
 import (
 	"time"
-	"database/sql"
+	"context"
 )
 
 type Deal struct {
@@ -18,11 +18,11 @@ type Deal struct {
 type DealRepository interface {
 	FindAll() ([]*Deal, error)
 	FindByID(id int) (*Deal, error)
-	Save(tx *sql.Tx, deal *Deal) error
+	Save(ctx context.Context, deal *Deal) error
 }
 
 type DealService interface {
 	ListDeals() ([]*Deal, error)
 	GetDeal(id int) (map[string]string, error)
-	CreateDeal(accountID int, volume int64, transactionType uint8, tradingAccountID int, remark string) (*Deal, error)
+	CreateDeal(ctx context.Context, accountID int, volume int64, transactionType uint8, tradingAccountID int, remark string) (*Deal, error)
 }

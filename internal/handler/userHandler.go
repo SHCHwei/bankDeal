@@ -5,17 +5,24 @@ import (
 	"bankDeal/internal/model"
 	"net/http"
 	"strconv"
+	"context"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/schema"
 )
 
 type UserHandler struct {
-	svc model.UserService
+	svc 		model.UserService
+	decode 		*schema.Decoder
+	validate 	*validator.Validate
 }
 
 func NewUserHandler(svc model.UserService) *UserHandler {
-	return &UserHandler{svc: svc}
+	return &UserHandler{
+		svc: svc,
+		decode: schema.NewDecoder(),
+		validate: validator.New(),
+	}
 }
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -29,21 +36,19 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 將 Form 資料綁定到 Struct
-	decoder := schema.NewDecoder()
-	if err := decoder.Decode(&requestData, r.PostForm); err != nil {
+	if err := h.decode.Decode(&requestData, r.PostForm); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// 驗證資料合法性
-	validate := validator.New()
-	if err := validate.Struct(&requestData); err != nil {
+	if err := h.validate.Struct(&requestData); err != nil {
 		// 這裡可以處理具體的錯誤訊息
-		http.Error(w, "驗證失敗: "+err.Error(), http.StatusBadRequest)
+		http.Error(w, "驗證失敗: " + err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = h.svc.CreateUser(requestData)
+	err = h.svc.CreateUser(context.Background(), requestData)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

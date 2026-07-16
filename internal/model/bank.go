@@ -2,9 +2,7 @@ package model
 
 import (
     "time"
-    "database/sql"
-
-
+    "context"
 )
 
 type Bank struct {
@@ -20,7 +18,7 @@ type Bank struct {
 
 type BankRepository interface{
     GetBankByID(id int)(*Bank, error)
-    CreateBank(tx *sql.Tx, bankData Bank)(int64, error)
+    CreateBank(ctx context.Context, bankData Bank)(int64, error)
 }
 
 

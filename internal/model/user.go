@@ -1,10 +1,9 @@
 package model
 
 import (
-	
-	"time"
-	"database/sql"
 	"bankDeal/internal/dto/request"
+	"time"
+	"context"
 )
 
 type User struct {
@@ -20,11 +19,11 @@ type User struct {
 
 type UserService interface {
 	GetUser(id int) (*User, error)
-	CreateUser(request.CreateUser) error
+	CreateUser(ctx context.Context, requestData request.CreateUser) error
 }
 
 type UserRepository interface {
 	FindUserByID(id int) (*User, error)
 	Search(user User) (*User, error)
-	InsertUser(tx *sql.Tx, user User) (int64, error)
+	InsertUser(ctx context.Context, user User) (int64, error)
 }

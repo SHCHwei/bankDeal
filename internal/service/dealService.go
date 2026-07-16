@@ -1,20 +1,28 @@
 package service
 
 import (
-	"fmt"
-	"strconv"
-	// "context"
 	"bankDeal/internal/model"
 	"bankDeal/internal/database"
+	"database/sql"
+	
+	"fmt"
+	"strconv"
+	"context"
+
 )
 
 type dealService struct {
-	dealRepo model.DealRepository
-	accountRepo model.AccountRepository
+	txManager   	*database.TxManager
+	dealRepo 		model.DealRepository
+	accountRepo 	model.AccountRepository
 }
 
-func NewDealService(dealRepo model.DealRepository, accountRepo model.AccountRepository) model.DealService {
-	return &dealService{dealRepo: dealRepo, accountRepo: accountRepo}
+func NewDealService(sqlDB *sql.DB, dealRepo model.DealRepository, accountRepo model.AccountRepository) model.DealService {
+	return &dealService{
+		txManager: database.NewTxManager(sqlDB),
+		dealRepo: dealRepo, 
+		accountRepo: accountRepo,
+	}
 }
 
 func (s *dealService) ListDeals() ([]*model.Deal, error) {
@@ -47,7 +55,7 @@ func (s *dealService) GetDeal(id int) (map[string]string, error) {
 	return dealDetail, nil
 }
 
-func (s *dealService) CreateDeal(accountID int, volume int64, transactionType uint8, tradingAccountID int, remark string) (*model.Deal, error) {
+func (s *dealService) CreateDeal(ctx context.Context, accountID int, volume int64, transactionType uint8, tradingAccountID int, remark string) (*model.Deal, error) {
 
 
 	var account , tradingAccount *model.Account
@@ -88,14 +96,6 @@ func (s *dealService) CreateDeal(accountID int, volume int64, transactionType ui
 		return nil, fmt.Errorf("tradingAccountID is required")
 	}
 
-	
-	// 建立 database transcation
-	tx, err := database.MariaDB.Begin()
-    if err != nil {
-        return nil, fmt.Errorf(err.Error())
-    }
-
-	defer tx.Rollback()
 
 	// 建立交易紀錄
 	deal := &model.Deal{
@@ -106,38 +106,43 @@ func (s *dealService) CreateDeal(accountID int, volume int64, transactionType ui
 		Remark:          	remark,
 	}
 
-	if err := s.dealRepo.Save(tx, deal); err != nil {
-		return nil, err
-	}
+	err = s.txManager.RunInTransaction(ctx, func(txCtx context.Context) error {
+
+		if err := s.dealRepo.Save(txCtx, deal); err != nil {
+			return err
+		}
 
 
-	// 帳戶異動紀錄 (甲方)
-	if transactionType == 0 {
-		account.Balance = account.Balance + volume
-	} else {
-		account.Balance = account.Balance - volume
-	}
+		// 帳戶異動紀錄 (甲方)
+		if transactionType == 0 {
+			account.Balance = account.Balance + volume
+		} else {
+			account.Balance = account.Balance - volume
+		}
 
-	s.accountRepo.Update(tx, account)
+		if err := s.accountRepo.Update(txCtx, account); err != nil {
+			return err
+		}
 
 
-	// 帳戶異動紀錄 (乙方)
-	if transactionType == 1 {
-		tradingAccount.Balance = tradingAccount.Balance + volume
-	} else {
-		tradingAccount.Balance = tradingAccount.Balance - volume
-	}
+		// 帳戶異動紀錄 (乙方)
+		if transactionType == 1 {
+			tradingAccount.Balance = tradingAccount.Balance + volume
+		} else {
+			tradingAccount.Balance = tradingAccount.Balance - volume
+		}
 
-	if err := s.accountRepo.Update(tx, tradingAccount); err != nil {
+		if err := s.accountRepo.Update(txCtx, tradingAccount); err != nil {
+			return err
+		}
+	
+		return nil
+	})
+
+
+	if err != nil {
 		return nil, err
 	}
 	
-
-    // Commit the transaction.
-    if err = tx.Commit(); err != nil {
-        return nil, err
-    }
-
-
 	return deal, nil
 }
