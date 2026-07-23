@@ -48,7 +48,7 @@ func (s *dealService) GetDeal(id int) (map[string]string, error) {
 
 
 	dealDetail["DealAccount_id"] = strconv.Itoa(tradingAccount.ID)
-	dealDetail["DealAccountName"] = strconv.Itoa(tradingAccount.ID)
+	dealDetail["DealAccountName"] = tradingAccount.AccountName
 	dealDetail["Volume"] = strconv.FormatInt(deal.Volume, 10)
 	dealDetail["Remark"] = deal.Remark
 

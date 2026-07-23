@@ -8,6 +8,7 @@ import (
 	"bankDeal/internal/repository"
 	"bankDeal/internal/service"
 	"bankDeal/internal/swagger"
+	"bankDeal/internal/middleware"
 	"log"
 	"net/http"
 )
@@ -57,10 +58,15 @@ func main() {
 	mux.HandleFunc("GET /swagger", swagger.UIHandler)
 	mux.HandleFunc("GET /swagger/doc", swagger.DocHandler)
 
+	handler := middleware.Chain(
+		mux,
+		middleware.Logging,
+		// middleware.Auth,
+	)
 
 	log.Printf("server listening on %s \n", cfg.Addr)
 
-	if err := http.ListenAndServe(cfg.Addr, mux); err != nil {
+	if err := http.ListenAndServe(cfg.Addr, handler); err != nil {
 		log.Fatal(err)
 	}
 
