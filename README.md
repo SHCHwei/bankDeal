@@ -1,8 +1,9 @@
 # bankDeal
 
 `bankDeal` 是一個以 Go 開發的銀行交易管理 API，支援使用者、帳戶與交易紀錄的建立與查詢。  
-目標是不使用框架，只利用原生的語法建制，期望過程中可以加深了解GO語言的特性。
-
+目標是不使用框架，只利用原生的語法建制，期望過程中可以加深了解GO語言的特性。  
+並且搭配 bankDeal-client-test 使用  
+https://github.com/SHCHwei/bankDeal-client-test
 
 ## 主要功能
 
