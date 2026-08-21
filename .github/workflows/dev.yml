@@ -1,13 +1,37 @@
-name: CI
+name: CI測試
+
 
 on:
   push:
-    branches: [ master ]
-
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - run: go test -v ./...
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.23
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.60
+
+      - name: Run Test
+        run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+      - name: Build Binary
+        run: env GOOS=linux GOARCH=amd64 go build -v -o my-app ./cmd/main.go
