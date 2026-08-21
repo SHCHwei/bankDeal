@@ -33,7 +33,10 @@ func (m *TxManager) RunInTransaction(ctx context.Context, fn func(ctx context.Co
 	// 執行業務邏輯
 	err = fn(txCtx)
 	if err != nil {
-		tx.Rollback() // 出錯就 Rollback
+		roll_err := tx.Rollback() // 出錯就 Rollback
+		if roll_err != nil {
+			return roll_err
+		}
 		return err
 	}
 

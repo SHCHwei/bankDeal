@@ -13,7 +13,11 @@ import (
 
 func FactoryFake() {
 
-	gofakeit.Seed(0)
+	err := gofakeit.Seed(0)
+	if err != nil {
+		fmt.Printf("failed to seed gofakeit: %v\n", err)
+		return
+	}
 
     var sum int =  1
 
@@ -27,7 +31,12 @@ func FactoryFake() {
         var bank model.Bank
         var codeSituation bool = true
 
-        gofakeit.Struct(&bank)
+        err := gofakeit.Struct(&bank)
+        if err != nil {
+            fmt.Printf("failed to generate fake bank: %v\n", err)
+            return
+        }
+
         bank.ID = sum
 
         for codeSituation {
@@ -68,7 +77,11 @@ func FactoryFake() {
 
 	for sum <= 100 {
 		var person model.User
-		gofakeit.Struct(&person)
+		err := gofakeit.Struct(&person)
+		if err != nil {
+			fmt.Printf("failed to generate fake user: %v\n", err)
+			return
+		}
         person.ID = sum
 		person.Phone = "09" + person.Phone
 
@@ -100,7 +113,11 @@ func FactoryFake() {
     for _, v := range persons {
         var account model.Account
 
-        gofakeit.Struct(&account)
+        err := gofakeit.Struct(&account)
+        if err != nil {
+            fmt.Printf("failed to generate fake account: %v\n", err)
+            return
+        }
 
         targetBank := banks[r.IntN(9)]
 
