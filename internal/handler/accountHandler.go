@@ -1,11 +1,9 @@
 package handler
 
 import (
-	"bankDeal/internal/dto/request"
 	"bankDeal/internal/model"
 	"net/http"
 	"strconv"
-	"context"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/schema"
@@ -30,7 +28,7 @@ func (h *AccountHandler) GetAccount(w http.ResponseWriter, r *http.Request) {
 	
 	id, err := strconv.Atoi(r.PathValue("id"))
 
-	
+
 	if err != nil {
 		http.Error(w, "Invalid account ID", http.StatusBadRequest)
 		return
