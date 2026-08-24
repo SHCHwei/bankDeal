@@ -38,9 +38,12 @@ func main() {
 	// build Service
 	userSvc := service.NewUserService(database.MariaDB, userRepo, accountRepo, bankRepo)
 	dealSvc := service.NewDealService(database.MariaDB, dealRepo, accountRepo)
+	accountSvc := service.NewAccountService(database.MariaDB, accountRepo)
+
 
 	handleDeal := handler.NewDealHandler(dealSvc)
 	handleUser := handler.NewUserHandler(userSvc)
+	handleAccount := handler.NewAccountHandler(accountSvc)
 
 	mux := http.NewServeMux()
 
@@ -49,6 +52,8 @@ func main() {
 
 	mux.HandleFunc("GET /user/{id}", handleUser.GetUser)          // 查詢用戶
 	mux.HandleFunc("POST /user/create", handleUser.CreateUser) // 建立用戶
+
+	mux.HandleFunc("GET /account/{id}", handleAccount.GetAccount)     // 查詢帳戶
 
 	mux.HandleFunc("GET /init/fake", func(w http.ResponseWriter, r *http.Request) {
 		database.FactoryFake()
