@@ -43,7 +43,7 @@ func FactoryFake() {
 
             code := buildBankCode()
             
-            if  codeSituation = strings.Contains(bankCodeList, code) ; codeSituation == false {
+            if  codeSituation = strings.Contains(bankCodeList, code) ; !codeSituation {
                 bank.Code = code
             }
 
@@ -108,7 +108,6 @@ func FactoryFake() {
 
     r := rand.New(rand.NewPCG(1, 2))
     var accountInsert string = "insert into accounts (userID, bankID, accountName , balance) values "
-    var accounts []model.Account
 
     for _, v := range persons {
         var account model.Account
@@ -130,7 +129,6 @@ func FactoryFake() {
 
         accountInsert = accountInsert + insertString
 
-        accounts = append(accounts, account)
     }
 
 

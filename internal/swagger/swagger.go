@@ -39,11 +39,11 @@ func DocHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+	w.Write(data) //nolint:errcheck
 }
 
 func UIHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(swaggerUIHTML))
+	w.Write([]byte(swaggerUIHTML)) //nolint:errcheck
 }

@@ -18,7 +18,7 @@ func main() {
 	cfg, dbCfg := config.Load()
 	database.BuildTables()
 
-	if dbResult := database.MariaDBConnect(*dbCfg); dbResult == false {
+	if dbResult := database.MariaDBConnect(*dbCfg); !dbResult {
 		log.Fatal("ＳＯＲＲＹ!! Database is Connect Failed ")
 	}
 
